@@ -1,0 +1,324 @@
+target Python {
+    keepalive: true
+}
+
+preamble {=
+import pandas as pd
+import time
+
+# Variabili globali per indice del wafer e colonne
+col_start, col_end, col = 0, 0, 0
+#Indice del wafer
+wafer_index = 0
+nome_wafer = None
+
+# Variabili delle varie flag
+#start_flag1, start_flag2, start_flag3, start_flag4, start_flag5, start_flag6, start_flag7, start_flag8 = 0, 0, 0, 0, 0, 0, 0, 0
+#end_flag1, end_flag2, end_flag3, end_flag4, end_flag5, end_flag6, end_flag7 = 0, 0, 0, 0, 0, 0, 0
+
+# Variabile globale per tenere dati del wafer
+wafer_data = None
+filename = "wafer.csv"
+
+def read_csv_and_get_phase_data(filename, wafer_index, col_start, col_end):
+    try:
+        # Legge il file CSV
+        data = pd.read_csv(filename, sep=",", header=0)
+        print(f"File CSV caricato: {data.head()}")  # Debug: stampa le prime righe del file
+        
+        # Verifica che l'indice sia valido
+        if wafer_index >= len(data):
+            print(f"Errore: Indice wafer_index ({wafer_index}) fuori dai limiti.")
+            return None, []
+        
+        # Ottieni il nome del wafer
+        nome_wafer = data.iloc[wafer_index, 0]  # Prima colonna contiene il nome del wafer
+        print(f"Nome wafer letto: {nome_wafer}")  # Debug: stampa il nome del wafer
+        
+        # Ottieni i dati dei sensori per la fase specifica
+        sensor_values = data.iloc[wafer_index, col_start:col_end+1].tolist()
+        print(f"Valori sensori letti: {sensor_values}")  # Debug: stampa i valori dei sensori
+        
+        return nome_wafer, sensor_values
+    except FileNotFoundError:
+        print(f"Errore: File '{filename}' non trovato.")
+        return None, []
+    except IndexError:
+        print(f"Errore: Indice {wafer_index} o colonne {col_start}-{col_end} fuori dai limiti.")
+        return None, []
+    except Exception as e:
+        print(f"Errore durante la lettura del file: {e}")
+        return None, []
+
+=}
+
+#Fase1
+reactor Fase1 (col_start = 1, col_end = 84) {
+    input start_flag1
+    output end_flag1
+
+    state nome_wafer
+
+    // Reazione per attivare la fase quando riceve la flag
+    reaction(start_flag1) {=
+        if start_flag1 == 1:  # Verifica che la flag sia attiva
+            print("Reattore Fase 1 attivato")
+            nome, data = read_csv_and_get_phase_data(filename, wafer_index, col_start, col_end)
+            if nome and data:
+                nome_wafer = nome
+                print(f"Nome wafer: {nome_wafer}")
+                print(f"Valori sensori per Fase 1 (Wafer {nome_wafer}): {data}")
+            else:
+                print("Errore nella lettura dei dati.")
+    =}
+
+    // Timer per la durata della fase
+    timer t(5 sec)
+    reaction(t) {=
+        print(f"Fase 1 completata per wafer {nome_wafer}")
+        end_flag1 = 1  # Imposta la flag di output per attivare la fase successiva
+    =}
+}
+#Fase2
+reactor Fase2 (col_start = 85, col_end = 169) {
+    input start_flag2
+    output end_flag2
+
+    state nome_wafer
+
+    reaction(start_flag2) {=
+        if start_flag2 == 1:  # Verifica che la flag sia attiva
+            print("Reattore Fase 2 attivato")
+            nome, data = read_csv_and_get_phase_data(filename, wafer_index, col_start, col_end)
+            if nome and data:
+                nome_wafer = nome
+                print(f"Nome wafer: {nome_wafer}")
+                print(f"Valori sensori per Fase 2 (Wafer {nome_wafer}): {data}")
+            else:
+                print("Errore nella lettura dei dati.")
+    =}
+
+    timer t(5 sec)
+    reaction(t) {=
+        print(f"Fase 2 completata per wafer {nome_wafer}")
+        end_flag2 = 1  # Imposta la flag di output per attivare la fase successiva
+    =}
+}
+
+#Fase 3
+reactor Fase3 (col_start = 170, col_end = 254) {
+    input start_flag3
+    output end_flag3
+
+    state nome_wafer
+
+    reaction(start_flag3) {=
+        if start_flag3 == 1:  # Verifica che la flag sia attiva
+            print("Reattore Fase 3 attivato")
+            nome, data = read_csv_and_get_phase_data(filename, wafer_index, col_start, col_end)
+            if nome and data:
+                nome_wafer = nome
+                print(f"Nome wafer: {nome_wafer}")
+                print(f"Valori sensori per Fase 3 (Wafer {nome_wafer}): {data}")
+            else:
+                print("Errore nella lettura dei dati.")
+    =}
+
+    timer t(5 sec)
+    reaction(t) {=
+        print(f"Fase 3 completata per wafer {nome_wafer}")
+        end_flag3 = 1  # Imposta la flag di output per attivare la fase successiva
+    =}
+}
+
+#Fase4
+reactor Fase4 (col_start = 255, col_end = 339) {
+    input start_flag4
+    output end_flag4
+
+    state nome_wafer
+
+    reaction(start_flag4) {=
+        if start_flag4 == 1:  # Verifica che la flag sia attiva
+            print("Reattore Fase 4 attivato")
+            nome, data = read_csv_and_get_phase_data(filename, wafer_index, col_start, col_end)
+            if nome and data:
+                nome_wafer = nome
+                print(f"Nome wafer: {nome_wafer}")
+                print(f"Valori sensori per Fase 4 (Wafer {nome_wafer}): {data}")
+            else:
+                print("Errore nella lettura dei dati.")
+    =}
+
+    timer t(5 sec)
+    reaction(t) {=
+        print(f"Fase 4 completata per wafer {nome_wafer}")
+        end_flag4 = 1  # Imposta la flag di output per attivare la fase successiva
+    =}
+}
+
+#Fase5
+reactor Fase5 (col_start = 340, col_end = 424) {
+    input start_flag5
+    output end_flag5
+
+    state nome_wafer
+
+    reaction(start_flag5) {=
+        if start_flag5 == 1:  # Verifica che la flag sia attiva
+            print("Reattore Fase 5 attivato")
+            nome, data = read_csv_and_get_phase_data(filename, wafer_index, col_start, col_end)
+            if nome and data:
+                nome_wafer = nome
+                print(f"Nome wafer: {nome_wafer}")
+                print(f"Valori sensori per Fase 5 (Wafer {nome_wafer}): {data}")
+            else:
+                print("Errore nella lettura dei dati.")
+    =}
+
+    timer t(5 sec)
+    reaction(t) {=
+        print(f"Fase 5 completata per wafer {nome_wafer}")
+        end_flag5 = 1  # Imposta la flag di output per attivare la fase successiva
+    =}
+}
+
+#Fase6
+reactor Fase6 (col_start = 425, col_end = 509) {
+    input start_flag6
+    output end_flag6
+    
+    state nome_wafer
+
+    reaction(start_flag6) {=
+        if start_flag6 == 1:  # Verifica che la flag sia attiva
+            print("Reattore Fase 6 attivato")
+            nome, data = read_csv_and_get_phase_data(filename, wafer_index, col_start, col_end)
+            if nome and data:
+                nome_wafer = nome
+                print(f"Nome wafer: {nome_wafer}")
+                print(f"Valori sensori per Fase 6 (Wafer {nome_wafer}): {data}")
+            else:
+                print("Errore nella lettura dei dati.")
+    =}
+
+    timer t(5 sec)
+    reaction(t) {=
+        print(f"Fase 6 completata per wafer {nome_wafer}")
+        end_flag6 = 1  # Imposta la flag di output per attivare la fase successiva
+    =}
+}
+
+#Fase7
+reactor Fase7 (col_start = 510, col_end = 590) {
+    input start_flag7
+    output end_flag7
+
+    state nome_wafer
+
+    reaction(start_flag7) {=
+        if start_flag7 == 1:  # Verifica che la flag sia attiva
+            print("Reattore Fase 7 attivato")
+            nome, data = read_csv_and_get_phase_data(filename, wafer_index, col_start, col_end)
+            if nome and data:
+                nome_wafer = nome
+                print(f"Nome wafer: {nome_wafer}")
+                print(f"Valori sensori per Fase 7 (Wafer {nome_wafer}): {data}")
+            else:
+                print("Errore nella lettura dei dati.")
+    =}
+
+    timer t(5 sec)
+    reaction(t) {=
+        print(f"Fase 7 completata per wafer {nome_wafer}")
+        end_flag7 = 1  # Imposta la flag di output per attivare la fase successiva
+    =}
+}
+
+#Fase finale
+reactor FaseFinale (col = 591) {
+    input start_flag8
+    output risultato
+
+    state nome_wafer
+
+    reaction(start_flag8) {=
+        if start_flag8 == 1:  # Verifica che la flag sia attiva
+            print("Reattore Fase 8 attivato")
+            nome_wafer, _ = read_csv_and_get_phase_data(filename, wafer_index, 0, col)  # Ottieni solo il nome del wafer
+            status = get_wafer_status(index)  # Ottieni lo stato del wafer
+            if nome_wafer:
+                print(f"Nome wafer: {nome_wafer}")
+            if status == 1:
+                print(f"Wafer {nome_wafer} accettabile!")
+            elif status == -1:
+                print(f"Wafer {nome_wafer} non accettabile.")
+            else:
+                print(f"Errore nello stato del wafer {nome_wafer}.")
+            risultato = status  # Imposta il risultato come output
+    =}
+}
+
+main reactor ProvaCodespace {
+
+    reaction(startup) -> f1.start_flag1{=
+        print("Inizio produzione wafer")
+        try:
+            data = pd.read_csv(filename, sep=",", header=0)
+            print(f"File '{filename}' caricato correttamente.")
+        except FileNotFoundError:
+            print(f"Errore: File '{filename}' non trovato.")
+            exit(1)
+        except Exception as e:
+            print(f"Errore durante il caricamento del file: {e}")
+            exit(1)
+    =}
+
+    # Dipendenze esplicite tra le reazioni
+    reaction(f1.end_flag1) -> f2.start_flag2 {=
+        print("Passaggio da Fase 1 a Fase 2")
+    =}
+
+    reaction(f2.end_flag2) -> f3.start_flag3 {=
+        print("Passaggio da Fase 2 a Fase 3")
+    =}
+
+    reaction(f3.end_flag3) -> f4.start_flag4 {=
+        print("Passaggio da Fase 3 a Fase 4")
+    =}
+
+    reaction(f4.end_flag4) -> f5.start_flag5 {=
+        print("Passaggio da Fase 4 a Fase 5")
+    =}
+
+    reaction(f5.end_flag5) -> f6.start_flag6 {=
+        print("Passaggio da Fase 5 a Fase 6")
+    =}
+
+    reaction(f6.end_flag6) -> f7.start_flag7 {=
+        print("Passaggio da Fase 6 a Fase 7")
+    =}
+
+    reaction(f7.end_flag7) -> f8.start_flag8 {=
+        print("Passaggio da Fase 7 a Fase 8")
+    =}
+
+    reaction(f8.risultato) {=
+        global wafer_index
+        wafer_index += 1
+        print(f"Passaggio al wafer successivo: {wafer_index}")
+    =}
+
+    f1 = new Fase1(col_start = 1, col_end = 84)
+    f2 = new Fase2(col_start = 85, col_end = 169)
+    f3 = new Fase3(col_start = 170, col_end = 254)
+    f4 = new Fase4(col_start = 255, col_end = 339)
+    f5 = new Fase5(col_start = 340, col_end = 424)
+    f6 = new Fase6(col_start = 425, col_end = 509)
+    f7 = new Fase7 (col_start = 510, col_end = 590)
+    f8 = new FaseFinale(col = 591)
+
+    reaction(f8.risultato) {=
+        print(f"Produzione completata. Stato finale del wafer: {f8.risultato}")
+    =}
+}
