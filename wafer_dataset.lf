@@ -71,7 +71,6 @@ def get_wafer_rows(start_row):
 reactor Fase(col_start=0, col_end=0, durata_col=2) {
     input start_flag
     input wafer_index
-    input wafer_number
     output end_flag
 
     reaction(start_flag, wafer_index) -> end_flag {=
