@@ -6,32 +6,34 @@ preamble {=
 import pandas as pd
 import time
 
-filename = "wafer.csv"
+filename = "D1.csv"                                                         # Il nuovo dataset è D1.csv
 wafer_data = None
+wafer_number = None                                                         # Variabile globale per il numero del wafer
+row = 0                                                                     # Variabile globale per tracciare a che riga sono arrivato
 
 def read_csv():
-    global wafer_data
+    global wafer_data                                                       # Variabile globale per i dati del wafer
     try:
         wafer_data = pd.read_csv(filename, sep=",", header=0)
-        print(f"File '{filename}' caricato correttamente.")
+        print(f"File '{filename}' caricato correttamente.")                 # Stampa un messaggio di successo
     except FileNotFoundError:
-        print(f"Errore: File '{filename}' non trovato.")
+        print(f"Errore: File '{filename}' non trovato.")                    # Se il file non viene trovato, stampa un messaggio di errore
         wafer_data = None
     except Exception as e:
-        print(f"Errore durante il caricamento del file: {e}")
+        print(f"Errore durante il caricamento del file: {e}")               # Notifica di altri errori durante il caricamento del file
         wafer_data = None
 
-def get_phase_data(index, start, end):
-    global wafer_data
+def get_phase_data(index, start, end):                                      # Per leggere le 15 feature devo passare start = 1 e end = 15
+    global wafer_data                                                       # Variabile globale per i dati del wafer
     if wafer_data is None:
         read_csv()
     if wafer_data is not None and index < len(wafer_data):
-        nome = wafer_data.iloc[index, 0]
-        data = wafer_data.iloc[index, start:end+1].tolist()
+        nome = wafer_data.iloc[index, 0]                                    # Nome del wafer
+        data = wafer_data.iloc[index, start:end+1].tolist()                 # Dati della feature specificata
         return nome, data
     return None, []
 
-def get_wafer_status(index):
+def get_wafer_status(index):                                                # Posso non considerare questa funzione al momento
     global wafer_data
     if wafer_data is not None and index < len(wafer_data):
         try:
@@ -39,59 +41,64 @@ def get_wafer_status(index):
         except:
             return -1
     return -1
+
+def get_wafer_number(index, col):                                                  # Index è l'indice della riga, col è la colonna da cui leggere il numero del wafer
+    global wafer_number
+    if wafer_number is None or wafer_number == 2866 or wafer_number == 1677:       # Se il wafer è 2866 o 2867, non lo considero
+        read_csv()
+    if wafer_number is not None:
+        try:
+            wafer_number = int(wafer_data.iloc[index, col])                        # Leggo il numero del wafer che sarà sempre in colonna 0
+            return wafer_number
+        except:
+            print(f"Errore nella lettura del numero del wafer alla riga {index}, colonna {col}.")
+            return None
+
+def get_wafer_rows(wafer_number):
+    global row
+    start_row = row                                                               # Trovo la riga di partenza per il wafer specificato
+
+    while (row < len(wafer_data) and wafer_data.iloc[row, 0] != wafer_number):    # Scorro le righe fino a trovare un wafer diverso
+        row += 1
+
+    end_row = row                                                                 # Trovo la riga di fine per il wafer specificato
+    wafer_block = wafer_data.iloc[start_row:end_row]                              # Prendo il blocco di dati del wafer
+    return wafer_block                                                            # Restituisco il blocco di dati del wafer
 =}
 
-reactor Fase(col_start=0, col_end=0, durata_sec=1) {
+reactor Fase(col_start=0, col_end=0, durata_col=2) {
     input start_flag
     input wafer_index
+    input wafer_number
     output end_flag
 
     reaction(start_flag, wafer_index) -> end_flag {=
-        index = wafer_index.value
-        nome, data = get_phase_data(index, self.col_start, self.col_end)
+        index = wafer_index.value                                                   # Ottengo la riga del wafer corrente
+        wafer_number = get_wafer_number(wafer_index.value, 0)                       # Leggo il numero del wafer corrente
+        n_rows = get_wafer_rows(wafer_index).shape[0]                               # Numero di righe del wafer corrente
+        for i in range(n_rows):                                                     # Scorro le righe del wafer corrente
+            time.sleep(self.durata_col)                                             # Simulo il tempo di elaborazione della fase
+            data = get_phase_data(index + i, self.col_start, self.col_end)          # Leggo i dati del wafer corrente
         if nome and data:
-            print(f"Reattore Fase {self.col_start}-{self.col_end} attivato per wafer {nome}")
-            print(f"Valori sensori: {[float(value) for value in data]}")
+            print(f"Reattore Fase {self.col_start}-{self.col_end} attivato per wafer {wafer_number}")
+            print(f"Valori feature: {[float(value) for value in data]}")
         else:
             print("Errore nella lettura dei dati.")
-        time.sleep(self.durata_sec)
         end_flag.set(1)
     =}
 }
 
-reactor FaseFinale(col=0) {
-    input start_flag
-    input wafer_index
-    output risultato
-
-    reaction(start_flag, wafer_index) -> risultato {=
-        index = wafer_index.value
-        nome, _ = get_phase_data(index, 0, self.col)
-        status = get_wafer_status(index)
-        if nome:
-            print(f"Reattore Fase Finale attivato per wafer {nome}")
-        if status == 1:
-            print(f"Wafer {nome} accettabile!")
-        elif status == -1:
-            print(f"Wafer {nome} non accettabile.")
-        else:
-            print(f"Errore nello stato del wafer {nome}.")
-        risultato.set(status)
-    =}
-}
-
 main reactor {
-    state wafer_index = 0
-    state fase = 1
+    state wafer_index = 0                                                   # Indice del wafer corrente
+    state fase = 1                                                          # Fase corrente, inizia da 1
 
-    f1 = new Fase(col_start=1, col_end=84, durata_sec=5)
-    f2 = new Fase(col_start=85, col_end=169, durata_sec=5)
-    f3 = new Fase(col_start=170, col_end=254, durata_sec=5)
-    f4 = new Fase(col_start=255, col_end=339, durata_sec=5)
-    f5 = new Fase(col_start=340, col_end=424, durata_sec=5)
-    f6 = new Fase(col_start=425, col_end=509, durata_sec=5)
-    f7 = new Fase(col_start=510, col_end=590, durata_sec=5)
-    f8 = new FaseFinale(col=591)
+    #f1m = new Fase(col_start=3, col_end=17, durata_col=2)                   # Fase -1 con le feaure che vanno da colonna 3 a colonna 17, la durata è a colonna 2 
+    f1 = new Fase(col_start=3, col_end=17, durata_col=2)                    # Fase 1 con le feaure che vanno da colonna 3 a colonna 17, la durata è a colonna 2
+    #f2m = new Fase(col_start=3, col_end=17, durata_col=2)                   # Fase -2 con le feaure che vanno da colonna 3 a colonna 17, la durata è a colonna 2
+    f2 = new Fase(col_start=3, col_end=17, durata_col=2)                    # Fase 2 con le feaure che vanno da colonna 3 a colonna 17, la durata è a colonna 2
+    f4 = new Fase(col_start=3, col_end=17, durata_col=2)                    # Fase 4 con le feaure che vanno da colonna 3 a colonna 17, la durata è a colonna 2
+    f6 = new Fase(col_start=3, col_end=17, durata_col=2)                    # Fase 6 con le feaure che vanno da colonna 3 a colonna 17, la durata è a colonna 2
+    f7 = new Fase(col_start=3, col_end=17, durata_col=2)                    # Fase 7 con le feaure che vanno da colonna 3 a colonna 17, la durata è a colonna 2                      
 
     logical action next_step
 
@@ -121,17 +128,6 @@ main reactor {
     =}
     reaction(f2.end_flag) -> next_step {=
         if self.fase == 2:
-            self.fase = 3
-            next_step.schedule(0)
-    =}
-
-    reaction(next_step) -> f3.start_flag, f3.wafer_index {=
-        if self.fase == 3:
-            f3.wafer_index.set(self.wafer_index)
-            f3.start_flag.set(1)
-    =}
-    reaction(f3.end_flag) -> next_step {=
-        if self.fase == 3:
             self.fase = 4
             next_step.schedule(0)
     =}
@@ -143,17 +139,6 @@ main reactor {
     =}
     reaction(f4.end_flag) -> next_step {=
         if self.fase == 4:
-            self.fase = 5
-            next_step.schedule(0)
-    =}
-
-    reaction(next_step) -> f5.start_flag, f5.wafer_index {=
-        if self.fase == 5:
-            f5.wafer_index.set(self.wafer_index)
-            f5.start_flag.set(1)
-    =}
-    reaction(f5.end_flag) -> next_step {=
-        if self.fase == 5:
             self.fase = 6
             next_step.schedule(0)
     =}
@@ -176,19 +161,8 @@ main reactor {
     =}
     reaction(f7.end_flag) -> next_step {=
         if self.fase == 7:
-            self.fase = 8
-            next_step.schedule(0)
-    =}
-
-    reaction(next_step) -> f8.start_flag, f8.wafer_index {=
-        if self.fase == 8:
-            f8.wafer_index.set(self.wafer_index)
-            f8.start_flag.set(1)
-    =}
-    reaction(f8.risultato) -> next_step {=
-        if self.fase == 8:
-            print(f"Produzione completata per wafer {self.wafer_index}. Stato: {f8.risultato}")
-            self.wafer_index += 1
+            print(f"Produzione completata per wafer {self.wafer_index}.")
+            self.wafer_index += get_wafer_number(self.wafer_index, 0)  # Aggiorno l'indice del wafer corrente
             self.fase = 1
             global wafer_data
             if wafer_data is not None and self.wafer_index < len(wafer_data):
